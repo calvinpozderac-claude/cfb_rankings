@@ -266,7 +266,11 @@ how many seasons?) moves the board as much as *which algorithm* you pick.
 Starting from the T0 ensemble (0.5499 log loss vs Vegas 0.5223 — a gap of 0.028), we ran a
 ladder of experiments, each adding a new *kind* of information or a new modelling idea, all
 walk-forward and scored on 2019–2025 (`scripts/experiments.py`, `experiments_extra.py`;
-full table in `results/experiments_ladder.csv`).
+full table in `results/experiments_ladder.csv`). One caveat on reading the table across rows:
+each model is scored over the seasons for which it exists, and the richer stacks need more
+history to fit — the `stack_final` row is 2023–2025, while the T0 ensemble and GBMs span
+2019–2025 — so treat the ladder as evidence for *which ingredients help*, not as a
+same-window horse race down to the fourth decimal.
 
 **New data pulled in:** play-level box scores for every game 2014–2025 (→ team yards/play,
 success rate, explosiveness, turnovers, havoc), season rosters + per-player production
@@ -335,10 +339,11 @@ market lacks.
 
 ### 5.1 Where the model beats — and loses to — the closing line
 
-Head-to-head on 2019–2025 (`scripts/vegas_vs_model.py`), our best results-only model
-(`stack_final`) and the closing line **agree on the winner 89% of the time**, and when they
-agree they are both right 74.9%. The interesting 11% is where they split — and that split is
-not random, it maps cleanly onto *the calendar* and *the size of the line*.
+Head-to-head (`scripts/vegas_vs_model.py`) on 2023–2025 — `stack_final`'s available window, as
+the deepest stack needs several seasons of history before it can be fit — our best results-only
+model and the closing line **agree on the winner 89% of the time**, and when they agree they
+are both right 74.9%. The interesting 11% is where they split — and that split is not random,
+it maps cleanly onto *the calendar* and *the size of the line*.
 
 ![Vegas vs model](results/figures/fig8_vegas_vs_model.png)
 
@@ -376,6 +381,41 @@ close. A practical takeaway falls out of this: trust the model over the line onl
 near-pick'em games from about Week 5 on, and treat any confident early-season disagreement as
 the model being uninformed rather than contrarian.
 
+### 5.2 Could a simple threshold rule have made money? (No.)
+
+The natural follow-up: §5.1 says the model beats the line late-season near a pick'em, so
+could we *bet* those spots profitably? We simulated placing bets on week W's games the moment
+week W-1 finishes, using only what is known then — the walk-forward model's probability, the
+**opening** spread, and the week — and paying realistic prices (consensus **closing**
+moneyline for payouts, −110 for spread bets). Because the tempting move is to tune a threshold
+and admire its in-sample profit, the rule is **chosen on 2013–2019 and scored out-of-sample on
+2021–2025** (`scripts/betting_sim.py`; flat \$100 stake, 8,606 candidate games).
+
+![Betting bankroll](results/figures/fig9_betting_bankroll.png)
+
+| Strategy (2013–2025) | Bets | Win % | ROI | Profit (\$100 flat) |
+|---|---:|---:|---:|---:|
+| Bet the model's pick on every game (ML) | 8,374 | 71.8% | **−3.8%** | −\$31,800 |
+| Bet the market favorite every game (ML) | 8,376 | 74.0% | −3.2% | −\$27,200 |
+| Bet **every** model-vs-line disagreement (ML) | 957 | 39.7% | −7.1% | −\$6,800 |
+| Best in-sample rule, **train 2013–19** (wk≥8, \|open\|≤3, edge≥.08) | 176 | — | **+4.7%** | — |
+| …the **same rule out-of-sample, 2021–25** | 149 | 47.7% | **−8.8%** | −\$1,300 |
+
+**No.** Every naive strategy loses almost exactly the house edge (≈3–4% on the moneyline).
+Selectively betting the disagreements — the model's supposed edge — loses *more* (−7.1%),
+because as §5.1 showed those are the games where the market knows something we don't. And the
+one rule that looked like a moneymaker in-sample (+4.7% ROI on 2013–19) **flipped to −8.8%
+out-of-sample** — a textbook overfit. The full grid tells the same story: not one of 96
+threshold combinations is reliably positive out-of-sample, and the ATS variants are
+significantly *negative* (t ≈ −2).
+
+This is exactly what §3–§4 predicted. Our model is ~0.02 log loss behind the closing line;
+the moneyline vig is ~0.04 wide. An edge smaller than the spread you must cross to place the
+bet is not a betting edge. The earlier "+5% on 2023–25" glimpse was 200 bets over three
+seasons (t = 0.8, not significant); widen the window and add an honest train/test split and it
+vanishes. **The model is a good ranker and a good forecaster; it is not a profitable betting
+system, and the market's efficiency is the reason.**
+
 ## 6. Reproduce
 
 ```bash
@@ -390,6 +430,8 @@ python scripts/experiments_extra.py # margin-regression GBM, dynamic-K Elo, fina
 python scripts/make_experiment_figures.py
 python scripts/vegas_vs_model.py    # where the model beats / trails the closing line
 python scripts/make_vegas_vs_model_fig.py
+python scripts/betting_sim.py       # threshold betting backtest (train/test, ML + ATS)
+python scripts/make_betting_fig.py
 ```
 
 All metrics come from `results/predictions.csv.gz` (one out-of-sample probability per model
