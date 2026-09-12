@@ -333,6 +333,49 @@ recruiting rankings and transfer-portal grades, and weather — and the opening�
 line-movement signal is the cleanest yardstick for whether any of them add information the
 market lacks.
 
+### 5.1 Where the model beats — and loses to — the closing line
+
+Head-to-head on 2019–2025 (`scripts/vegas_vs_model.py`), our best results-only model
+(`stack_final`) and the closing line **agree on the winner 89% of the time**, and when they
+agree they are both right 74.9%. The interesting 11% is where they split — and that split is
+not random, it maps cleanly onto *the calendar* and *the size of the line*.
+
+![Vegas vs model](results/figures/fig8_vegas_vs_model.png)
+
+**When the model wins: late season, near a pick'em, on teams the market re-rates slowly.**
+
+* **The model overtakes Vegas by November.** Accuracy by point in the season: Week 1
+  66% vs the line's 71%; Weeks 2–4 dead even (74 vs 75); but **Weeks 10+ the model leads,
+  73% vs 71%.** On the games where they *disagree*, the model is right just 38% in Week 1 but
+  **62% from Week 9 on** — once a full season of results is in, its opponent-adjusted
+  efficiency ratings see quality the market is slow to reprice.
+* **Only near a pick'em.** When the two disagree on a game the line calls a coin flip (0–3
+  pts), the model is right ~52–55% — a real, if small, edge. The moment the line has a clear
+  favorite it evaporates: 3–7 pt games 41%, 7–14 pt games 14%. The model can nudge a toss-up;
+  it cannot overrule a confident market.
+* Typical model wins are mid-majors the market lags on — **Jacksonville State three times in
+  its 2023 FBS debut**, Coastal Carolina, Washington State — plus legitimate late upsets it
+  saw coming (Michigan over USC, Missouri over Oklahoma, FSU over Louisville).
+
+**When the model loses: Week 1, and whenever it disagrees *confidently*.**
+
+* **High conviction against the line is a red flag, not an edge.** When the model's win
+  probability differs most from the market's (gap ≥ 0.20), it is right only **34%** of the
+  time. A big results-based disagreement almost always means the model is missing something
+  the market has priced.
+* **That "something" is the offseason.** The dozen games where the model most confidently
+  overruled the line and lost are almost all **Week 1**: Indiana (new coach + portal
+  overhaul) 42–13 over the UCLA team the model preferred; Washington State, Virginia Tech,
+  Navy, Army, California — a roll-call of roster turnover. Anchored to last year's ratings, the
+  model backed the fading name brand while the market had already repriced the new roster.
+
+The two failure modes are the same coin: the model's information is *results*, so it is
+strongest exactly when results have accumulated (late season, mispriced risers) and weakest
+before any have (Week 1 roster change) — which is precisely the September gap §5 could not
+close. A practical takeaway falls out of this: trust the model over the line only on
+near-pick'em games from about Week 5 on, and treat any confident early-season disagreement as
+the model being uninformed rather than contrarian.
+
 ## 6. Reproduce
 
 ```bash
@@ -345,6 +388,8 @@ python -m src.cfbrank.boxstats      # box-score / player-production caches (need
 python scripts/experiments.py       # experiment ladder (T1-T5), ~4 min
 python scripts/experiments_extra.py # margin-regression GBM, dynamic-K Elo, final stacks
 python scripts/make_experiment_figures.py
+python scripts/vegas_vs_model.py    # where the model beats / trails the closing line
+python scripts/make_vegas_vs_model_fig.py
 ```
 
 All metrics come from `results/predictions.csv.gz` (one out-of-sample probability per model
