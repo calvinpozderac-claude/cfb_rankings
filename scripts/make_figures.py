@@ -32,18 +32,27 @@ byS = pd.read_csv(os.path.join(RES, "metrics_by_season.csv"))
 
 # --- Fig 1: model comparison, recent era (log loss + accuracy) ---
 rec = pred[(pred.season >= 2019) & (pred.season <= 2025)]
-models = ["market", "ensemble", "gbm", "mlp", "cfbd_elo", "elo",
-          "bradley_terry", "pr_points", "pr_margin", "pr_win", "blade_chest"]
+models = ["market", "ensemble", "gbm", "mlp", "cfbd_elo", "elo", "pr_points_keep",
+          "bradley_terry", "pr_points", "pr_points_against", "pr_margin", "pr_win",
+          "blade_chest"]
 labels = {"market": "Vegas line", "ensemble": "Ensemble", "gbm": "GBM",
           "mlp": "Neural net", "cfbd_elo": "CFBD Elo", "elo": "Elo (ours)",
           "bradley_terry": "Bradley-Terry", "pr_points": "PageRank-points",
+          "pr_points_against": "PageRank-points-against", "pr_points_keep": "PageRank-points+keep",
           "pr_margin": "PageRank-margin", "pr_win": "PageRank-win",
           "blade_chest": "Blade-Chest"}
 ll = [metrics.evaluate(rec.home_win.values, rec[m].values)["logloss"] for m in models]
 ac = [metrics.evaluate(rec.home_win.values, rec[m].values)["acc"] for m in models]
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6))
-colors = ["#111111" if m == "market" else ("#0072B2" if m == "ensemble" else "#7aa6c2")
-          for m in models]
+def _bar_color(m):
+    if m == "market":
+        return "#111111"
+    if m == "ensemble":
+        return "#0072B2"
+    if m == "pr_points_keep":
+        return "#009E73"   # highlight the self-retention variant
+    return "#7aa6c2"
+colors = [_bar_color(m) for m in models]
 ax1.barh([labels[m] for m in models], ll, color=colors)
 ax1.invert_yaxis(); ax1.set_xlabel("Log loss (lower = better)")
 ax1.set_xlim(0.48, 0.70); ax1.set_title("Probability quality, 2019-2025")
@@ -97,6 +106,30 @@ ax.set_xlabel("Week of regular season"); ax.set_ylabel("Accuracy (%)")
 ax.set_title("Accuracy by week, 2014-2025 (early season is hardest)")
 ax.legend()
 fig.tight_layout(); fig.savefig(os.path.join(FIG, "fig4_by_week.png")); plt.close(fig)
+
+
+# --- Fig 5: PageRank family focus (the point-flow variants) ---
+pr_order = ["pr_win", "pr_margin", "pr_points", "pr_points_against", "pr_points_keep"]
+pr_lab = ["wins", "margin", "points", "points-against", "points+keep (retain)"]
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 3.9))
+acc = [metrics.evaluate(rec.home_win.values, rec[m].values)["acc"] * 100 for m in pr_order]
+ll = [metrics.evaluate(rec.home_win.values, rec[m].values)["logloss"] for m in pr_order]
+elo_acc = metrics.evaluate(rec.home_win.values, rec["elo"].values)["acc"] * 100
+elo_ll = metrics.evaluate(rec.home_win.values, rec["elo"].values)["logloss"]
+bar_c = ["#7aa6c2"] * 4 + ["#009E73"]
+ax1.bar(pr_lab, acc, color=bar_c)
+ax1.axhline(elo_acc, color="#111", ls="--", lw=1)
+ax1.text(0.02, elo_acc + 0.15, "Elo", transform=ax1.get_yaxis_transform(), fontsize=8)
+ax1.set_ylim(65, 72); ax1.set_ylabel("Accuracy (%)")
+ax1.set_title("PageRank edge weighting: accuracy (2019-2025)")
+ax1.tick_params(axis="x", rotation=25)
+ax2.bar(pr_lab, ll, color=bar_c)
+ax2.axhline(elo_ll, color="#111", ls="--", lw=1)
+ax2.text(0.02, elo_ll + 0.004, "Elo", transform=ax2.get_yaxis_transform(), fontsize=8)
+ax2.set_ylim(0.53, 0.70); ax2.set_ylabel("Log loss")
+ax2.set_title("PageRank edge weighting: log loss (2019-2025)")
+ax2.tick_params(axis="x", rotation=25)
+fig.tight_layout(); fig.savefig(os.path.join(FIG, "fig5_pagerank_family.png")); plt.close(fig)
 
 
 # --- Final 2025 rankings (Elo + Bradley-Terry), FBS only ---

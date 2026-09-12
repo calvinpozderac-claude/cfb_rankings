@@ -93,32 +93,63 @@ def _pagerank(nodes, edges, damping=0.85, iters=200, tol=1e-10):
     return {t: r[idx[t]] for t in nodes}
 
 
+def _result_edges(home, away, hp, ap, home_win, w, weight, margin_cap):
+    """Directed edges (src, dst, weight) contributed by one game.
+
+    Rank flows *out* of `src` toward `dst`; PageRank then rewards nodes that
+    receive heavily-weighted flow. Weights from parallel games accumulate.
+    """
+    winner, loser = (home, away) if home_win == 1 else (away, home)
+    if weight == "win":
+        return [(loser, winner, w)]
+    if weight == "margin":
+        m = min(abs(hp - ap), margin_cap)
+        return [(loser, winner, w * (1.0 + m))]
+    if weight == "points":
+        return [(home, away, w * (ap + 1)), (away, home, w * (hp + 1))]
+    if weight == "points_against":
+        # Each team sends rank to opponents in proportion to the points those
+        # opponents scored on it (raw points). A close game swaps rank ~evenly;
+        # a blowout ships rank to the team that scored.
+        e = []
+        if ap > 0:
+            e.append((home, away, w * ap))   # away scored ap on home
+        if hp > 0:
+            e.append((away, home, w * hp))   # home scored hp on away
+        return e
+    if weight == "points_keep":
+        # Same opponent flow, plus a self-loop weighted by the points a team
+        # scored, so it RETAINS rank. Season keep/give split per team is
+        # (points scored) / (points scored + points allowed).
+        e = []
+        if ap > 0:
+            e.append((home, away, w * ap))
+        if hp > 0:
+            e.append((away, home, w * hp))
+        if hp > 0:
+            e.append((home, home, w * hp))   # home keeps in proportion to its scoring
+        if ap > 0:
+            e.append((away, away, w * ap))
+        return e
+    raise ValueError(weight)
+
+
 def make_pagerank(weight="win", damping=0.85, margin_cap=28.0, carry=0.35):
     """Factory for a PageRank ranker.
 
-    weight: 'win'    - each result contributes a unit loser->winner edge
-            'margin' - edge weight = min(margin, margin_cap)  (learned cap)
-            'points' - bidirectional; edge i->j weight = points j scored on i
+    weight: 'win'            - unit loser->winner edge
+            'margin'         - loser->winner edge weight grows with (capped) margin
+            'points'         - bidirectional, edge i->j weight = points j scored on i (+1)
+            'points_against' - i distributes rank to opponents by their points on i
+            'points_keep'    - as points_against, plus a self-loop = own points scored
     """
     def fit(history: pd.DataFrame):
         h = _history_window(history, carry)
         nodes = sorted(set(h["home_team"]) | set(h["away_team"]))
         edges = []
         for r in h.itertuples(index=False):
-            hp, ap, w = r.home_points, r.away_points, r.w
-            winner = r.home_team if r.home_win == 1 else r.away_team
-            loser = r.away_team if r.home_win == 1 else r.home_team
-            if weight == "win":
-                edges.append((loser, winner, w))
-            elif weight == "margin":
-                m = min(abs(hp - ap), margin_cap)
-                edges.append((loser, winner, w * (1.0 + m)))
-            elif weight == "points":
-                # rank flows toward whoever scored: i -> j weighted by j's points on i
-                edges.append((r.home_team, r.away_team, w * (ap + 1)))
-                edges.append((r.away_team, r.home_team, w * (hp + 1)))
-            else:
-                raise ValueError(weight)
+            edges.extend(_result_edges(r.home_team, r.away_team, r.home_points,
+                                       r.away_points, r.home_win, r.w, weight, margin_cap))
         pr = _pagerank(nodes, edges, damping=damping)
         # log scale so ratios become additive differences for the logistic
         rating = {t: np.log(max(v, 1e-12)) for t, v in pr.items()}

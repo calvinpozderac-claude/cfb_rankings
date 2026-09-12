@@ -5,21 +5,25 @@ Tuning PageRank margin ...
   best PR-margin: {'margin_cap': 45, 'damping': 0.85, 'acc': 0.6860438292964245, 'logloss': 0.6184948325376229}
 Running Elo ...
 Building features ...
-  pr_win         done [19s]
-  pr_margin      done [20s]
-  pr_points      done [19s]
-  bradley_terry  done [5s]
-  blade_chest    done [102s]
-  gbm            done [4s]
-  mlp            done [11s]
+  pr_win         done [24s]
+  pr_margin      done [25s]
+  pr_points      done [24s]
+  pr_points_against done [25s]
+  pr_points_keep done [27s]
+  bradley_terry  done [7s]
+  blade_chest    done [141s]
+  gbm            done [6s]
+  mlp            done [16s]
 
-DONE in 214s
+DONE in 338s
 
 === 2019-2025 (recent) ===
   elo                n= 5106 acc=0.7076 ll=0.5586 brier=0.1898
   pr_win             n= 5106 acc=0.6739 ll=0.6845 brier=0.2234
   pr_margin          n= 5106 acc=0.6731 ll=0.6721 brier=0.2192
   pr_points          n= 5106 acc=0.6712 ll=0.5981 brier=0.2062
+  pr_points_against  n= 5106 acc=0.6696 ll=0.5982 brier=0.2063
+  pr_points_keep     n= 5106 acc=0.6992 ll=0.5716 brier=0.1943
   bradley_terry      n= 5106 acc=0.6767 ll=0.6037 brier=0.2078
   blade_chest        n= 5106 acc=0.6643 ll=0.6195 brier=0.2144
   gbm                n= 5106 acc=0.7113 ll=0.5529 brier=0.1871

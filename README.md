@@ -6,7 +6,8 @@ week's games** out-of-sample against the **Vegas closing line**.
 Three model classes are implemented and backtested walk-forward over **2001–2025**:
 
 * **Network / PageRank** — win-, margin-, and points-weighted random walks over the
-  win/loss graph, with tunable edge weighting.
+  win/loss graph, with tunable edge weighting — including a **points-flow-with-self-retention**
+  variant that matches Elo.
 * **Elo / paired-comparison** — margin-aware online Elo, Bradley–Terry logistic strengths,
   and the intransitive **Blade–Chest** low-rank model.
 * **Machine learning** — gradient boosting and a neural net on pre-game features, plus a
@@ -19,7 +20,8 @@ Elo.
 
 ### TL;DR
 Tuned Elo ≈ gradient boosting ≈ the ensemble, all at **~71% accuracy / 0.55 log loss** on
-recent seasons. PageRank ranks fine but predicts poorly. **Nothing beats the closing line**
+recent seasons. Most PageRanks predict poorly, but a points-flow walk with self-retention
+(`points+keep`) matches Elo at **69.9%**. **Nothing beats the closing line**
 (all models ≈ 49.5% against the spread vs a 52.4% break-even), and where our best model
 disagrees with the market on the winner, the market is right 58% of the time.
 

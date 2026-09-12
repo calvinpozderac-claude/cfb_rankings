@@ -115,6 +115,8 @@ def main():
         ("pr_margin", rankers.make_pagerank("margin", damping=bp["damping"],
                                             margin_cap=bp["margin_cap"])),
         ("pr_points", rankers.make_pagerank("points", damping=bp["damping"])),
+        ("pr_points_against", rankers.make_pagerank("points_against", damping=bp["damping"])),
+        ("pr_points_keep", rankers.make_pagerank("points_keep", damping=bp["damping"])),
         ("bradley_terry", rankers.make_bradley_terry()),
         ("blade_chest", rankers.make_blade_chest(dim=3)),
     ]
@@ -181,9 +183,9 @@ def main():
                 compression="gzip")
 
     # ---- metrics ----
-    model_cols = ["elo", "pr_win", "pr_margin", "pr_points", "bradley_terry",
-                  "blade_chest", "gbm", "mlp", "ensemble", "cfbd_elo", "market",
-                  "market_plus_model"]
+    model_cols = ["elo", "pr_win", "pr_margin", "pr_points", "pr_points_against",
+                  "pr_points_keep", "bradley_terry", "blade_chest", "gbm", "mlp",
+                  "ensemble", "cfbd_elo", "market", "market_plus_model"]
     overall_rows = []
     for lo, hi, label in ERAS:
         sub = base[(base.season >= lo) & (base.season <= hi)]

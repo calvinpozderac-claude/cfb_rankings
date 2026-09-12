@@ -16,8 +16,10 @@ genuinely hard to beat — the **Vegas closing line** and **CollegeFootballData'
 | Neural net (MLP) | ML | 71.1% | 0.555 | 0.188 |
 | CFBD Elo | *algo benchmark* | 71.0% | 0.560 | 0.189 |
 | Elo (tuned, ours) | Elo | 70.8% | 0.559 | 0.190 |
+| **PageRank (points + keep)** | **network** | **69.9%** | **0.572** | **0.194** |
 | Bradley–Terry | paired-comparison | 67.7% | 0.604 | 0.208 |
 | PageRank (points) | network | 67.1% | 0.598 | 0.206 |
+| PageRank (points-against) | network | 67.0% | 0.598 | 0.206 |
 | PageRank (margin) | network | 67.3% | 0.672 | 0.219 |
 | PageRank (wins) | network | 67.4% | 0.685 | 0.223 |
 | Blade–Chest | intransitive | 66.4% | 0.620 | 0.214 |
@@ -26,9 +28,12 @@ genuinely hard to beat — the **Vegas closing line** and **CollegeFootballData'
 
 Three findings drive everything below:
 
-1. **Elo-class online models beat network (PageRank) models for prediction**, by ~3–4
-   points of accuracy and a large log-loss margin. PageRank is a fine *descriptive* ranker
-   but a poorly-calibrated *predictor*.
+1. **Elo-class online models beat most network (PageRank) models for prediction** — *but
+   the gap is almost entirely about how rank is transferred, not about PageRank itself.*
+   A points-flow PageRank where each team **retains** rank in proportion to the points it
+   scores (`points+keep`, §2.1) jumps from the ~67% pack to **69.9% / 0.572**, essentially
+   matching tuned Elo. The naïve win/margin PageRanks are fine *descriptive* rankers but
+   poorly-calibrated *predictors*.
 2. **Machine learning adds a little, ensembling adds a little more, but the gains are
    small.** The whole field of "our" models sits in a tight band around 71% / 0.55.
 3. **The market is the ceiling, and it is efficient.** No model beats the closing spread
@@ -77,9 +82,33 @@ edge?"*:
 Ratings are mapped to win probabilities by a logistic calibrator fit on the training games.
 We **tuned** the margin cap and damping on 2013–2018 (see `results/tuning_pagerank.csv`):
 heavier margin weighting helps slightly (best cap ≈ 45, damping 0.85), but even the best
-PageRank variant is dominated by Elo. The **points** variant is by far the best-calibrated
-PageRank (log loss 0.598 vs 0.685 for wins) — *how* rank flows matters more than the raw
-graph.
+win/margin PageRank is dominated by Elo. *How* rank flows matters far more than the raw
+graph — which motivates the point-flow variants below.
+
+#### 2.1 Point-flow PageRank (and a self-retention twist)
+
+Two schemes distribute rank by *points* rather than by wins:
+
+* **`points-against`** — each team sends its rank to opponents **in proportion to the points
+  those opponents scored on it**. If a team's three opponents scored 3, 10, and 7 on it,
+  they receive 15% / 50% / 35% of its outflow. A close game just swaps rank symmetrically; a
+  blowout ships rank to the team that scored. (This is the clean, `+1`-free version of the
+  earlier `points` variant, and performs identically to it: **67.0%**.)
+* **`points+keep`** — *same opponent flow, but a team also **retains** rank through a
+  self-loop weighted by the points it scored.* If that team also scored 20 points total
+  (= the 20 it allowed), it **keeps 50%** and splits the other 50% as 15/50/35. The
+  season-long keep/give split per team is `points scored / (points scored + points allowed)`.
+
+The self-retention twist is the single biggest lever in the whole PageRank family:
+
+![PageRank edge weighting](results/figures/fig5_pagerank_family.png)
+
+`points+keep` gains **+2.8 accuracy points and ~0.03 log loss** over every other PageRank
+variant and **lands right on tuned Elo** (69.9% vs 70.8% accuracy; 0.572 vs 0.559 log loss,
+2019–2025) — and the effect is stable in every era back to 2006 (`results/metrics_overall.csv`).
+Intuitively, a self-loop proportional to points scored stops strong offenses from bleeding
+all their rank to whoever they just beat, and folds *offensive output* directly into the
+stationary distribution — the piece of information plain loser→winner PageRank throws away.
 
 ### Elo / paired-comparison (`src/cfbrank/elo.py`, `rankers.py`)
 * **Elo** with a 538-style margin-of-victory multiplier, home-field advantage, and
@@ -159,8 +188,10 @@ changes the ranking as much as *which algorithm* you use.
 
 * **For prediction, use Elo (or an ML model on Elo-style features).** It is simple, online,
   well-calibrated, and within a whisker of far more complex models.
-* **PageRank is a ranking tool, not a forecasting tool.** Win/margin-weighted PageRank is
-  badly calibrated; if you must use a network method, let rank flow with *points*.
+* **PageRank *can* forecast — if rank flows the right way.** Win/margin-weighted PageRank is
+  badly calibrated, but a points-flow walk with **self-retention proportional to points
+  scored** (`points+keep`) matches Elo. The edge-weighting scheme, not the algorithm, is
+  what separates a 67% predictor from a 70% one.
 * **Blade–Chest's intransitivity did not pay off** at CFB sample sizes — the extra
   parameters cost more (variance) than the matchup structure returns.
 * **Ensembling buys calibration, not accuracy**, and **nothing we built beats the closing
