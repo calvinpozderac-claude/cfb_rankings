@@ -1,0 +1,30 @@
+games=36,868  FBS-vs-FBS=17,472
+Tuning Elo ...
+  best Elo: {'k': 40, 'home_field': 50, 'preseason_regress': 0.15, 'acc': 0.7383312020460358, 'logloss': 0.5233842465808027}
+Tuning PageRank margin ...
+  best PR-margin: {'margin_cap': 45, 'damping': 0.85, 'acc': 0.6860438292964245, 'logloss': 0.6184948325376229}
+Running Elo ...
+Building features ...
+  pr_win         done [19s]
+  pr_margin      done [20s]
+  pr_points      done [19s]
+  bradley_terry  done [5s]
+  blade_chest    done [102s]
+  gbm            done [4s]
+  mlp            done [11s]
+
+DONE in 214s
+
+=== 2019-2025 (recent) ===
+  elo                n= 5106 acc=0.7076 ll=0.5586 brier=0.1898
+  pr_win             n= 5106 acc=0.6739 ll=0.6845 brier=0.2234
+  pr_margin          n= 5106 acc=0.6731 ll=0.6721 brier=0.2192
+  pr_points          n= 5106 acc=0.6712 ll=0.5981 brier=0.2062
+  bradley_terry      n= 5106 acc=0.6767 ll=0.6037 brier=0.2078
+  blade_chest        n= 5106 acc=0.6643 ll=0.6195 brier=0.2144
+  gbm                n= 5106 acc=0.7113 ll=0.5529 brier=0.1871
+  mlp                n= 5106 acc=0.7109 ll=0.5551 brier=0.1879
+  ensemble           n= 5106 acc=0.7105 ll=0.5492 brier=0.1859
+  cfbd_elo           n= 5106 acc=0.7101 ll=0.5597 brier=0.1894
+  market             n= 5062 acc=0.7299 ll=0.5223 brier=0.1757
+  market_plus_model  n= 5062 acc=0.7309 ll=0.5220 brier=0.1755

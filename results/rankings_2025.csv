@@ -1,0 +1,26 @@
+rank,Elo_team,Elo_rating,BT_team,BT_strength
+1,Indiana,2283,Indiana,1.48
+2,Ohio State,2131,Oregon,1.24
+3,Oregon,2126,Ohio State,1.17
+4,Georgia,2118,BYU,1.06
+5,Miami,2113,Georgia,1.03
+6,Notre Dame,2111,Ole Miss,1.01
+7,Ole Miss,2091,Miami,1.01
+8,Texas,2054,Notre Dame,1.0
+9,Texas Tech,2031,Navy,0.87
+10,Utah,2002,Texas Tech,0.87
+11,Alabama,1980,Texas,0.86
+12,Iowa,1964,James Madison,0.85
+13,Vanderbilt,1950,Alabama,0.79
+14,BYU,1942,Tulane,0.78
+15,Texas A&M,1937,Texas A&M,0.77
+16,Penn State,1934,North Texas,0.74
+17,James Madison,1931,Utah,0.67
+18,SMU,1930,Oklahoma,0.65
+19,Oklahoma,1923,SMU,0.64
+20,Washington,1897,Illinois,0.63
+21,USC,1889,TCU,0.63
+22,Michigan,1870,Iowa State,0.63
+23,Arizona,1868,Michigan,0.59
+24,Louisville,1865,UNLV,0.59
+25,TCU,1862,Louisville,0.57
