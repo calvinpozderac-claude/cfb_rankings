@@ -5,9 +5,10 @@ DataFrame (chronological) and ``predictor(home, away, neutral) -> P(home win)``.
 Fitting uses only the supplied history, so the walk-forward backtester can call
 it with "all games before period p" and get leak-free predictions.
 
-To give the batch (season-resume) models early-season stability comparable to
-Elo's cross-season carry, they fit on the current season plus the prior season,
-with prior-season games down-weighted by ``carry``.
+To give the batch models a prior season carried in from history (so a program
+that was strong last year is rated strong in week 1), they fit on several past
+seasons with an exponential recency weight: a game ``d`` seasons back gets
+weight ``decay ** d`` (see ``_decayed_history``). The best ``decay`` is tuned.
 """
 from __future__ import annotations
 
@@ -22,13 +23,20 @@ from sklearn.linear_model import LogisticRegression
 # --------------------------------------------------------------------------- #
 # helpers
 # --------------------------------------------------------------------------- #
-def _history_window(history: pd.DataFrame, carry: float) -> pd.DataFrame:
-    """Current season + prior season (down-weighted) with a `w` weight column."""
+def _decayed_history(history: pd.DataFrame, decay: float, max_back: int = 6) -> pd.DataFrame:
+    """All history from the last ``max_back+1`` seasons, with a recency weight.
+
+    A game from ``d`` seasons before the one being predicted gets weight
+    ``decay ** d`` (current season = 1). ``decay=1`` weights all seasons equally;
+    ``decay->0`` collapses to the current season only. This is how every batch
+    model "remembers" that a program was strong in prior years — heavily at the
+    start of a new season, fading as fresh results arrive.
+    """
     if len(history) == 0:
         return history.assign(w=[])
     cur = int(history["season"].max())
-    h = history[history["season"] >= cur - 1].copy()
-    h["w"] = np.where(h["season"] == cur, 1.0, carry)
+    h = history[history["season"] >= cur - max_back].copy()
+    h["w"] = np.power(float(decay), (cur - h["season"]).astype(float))
     return h
 
 
@@ -134,7 +142,7 @@ def _result_edges(home, away, hp, ap, home_win, w, weight, margin_cap):
     raise ValueError(weight)
 
 
-def make_pagerank(weight="win", damping=0.85, margin_cap=28.0, carry=0.35):
+def make_pagerank(weight="win", damping=0.85, margin_cap=28.0, decay=0.6):
     """Factory for a PageRank ranker.
 
     weight: 'win'            - unit loser->winner edge
@@ -144,7 +152,7 @@ def make_pagerank(weight="win", damping=0.85, margin_cap=28.0, carry=0.35):
             'points_keep'    - as points_against, plus a self-loop = own points scored
     """
     def fit(history: pd.DataFrame):
-        h = _history_window(history, carry)
+        h = _decayed_history(history, decay)
         nodes = sorted(set(h["home_team"]) | set(h["away_team"]))
         edges = []
         for r in h.itertuples(index=False):
@@ -161,14 +169,14 @@ def make_pagerank(weight="win", damping=0.85, margin_cap=28.0, carry=0.35):
 # --------------------------------------------------------------------------- #
 # Bradley-Terry (logistic MLE with home advantage + L2 shrinkage)
 # --------------------------------------------------------------------------- #
-def make_bradley_terry(reg=3.0, carry=0.35):
+def make_bradley_terry(reg=3.0, decay=0.6):
     """Bradley-Terry / logistic paired-comparison ratings.
 
     P(home win) = sigmoid(s_home - s_away + h*home_ind). Strengths s and home
     edge h are fit by weighted, L2-regularised maximum likelihood.
     """
     def fit(history: pd.DataFrame):
-        h = _history_window(history, carry)
+        h = _decayed_history(history, decay)
         teams = sorted(set(h["home_team"]) | set(h["away_team"]))
         tidx = {t: i for i, t in enumerate(teams)}
         n = len(teams)
@@ -221,7 +229,7 @@ def tidx_arr(series, tidx):
 # --------------------------------------------------------------------------- #
 # Blade-chest (low-rank, intransitive)
 # --------------------------------------------------------------------------- #
-def make_blade_chest(dim=3, reg=1.0, carry=0.35, gamma=1.0):
+def make_blade_chest(dim=3, reg=1.0, decay=0.6, gamma=1.0):
     """Blade-chest-inner model (Chen & Joachims, 2016).
 
     Each team has a blade b_t (offense) and chest c_t (defense) vector plus a
@@ -230,7 +238,7 @@ def make_blade_chest(dim=3, reg=1.0, carry=0.35, gamma=1.0):
     rating cannot. Fit by weighted regularised MLE (L-BFGS).
     """
     def fit(history: pd.DataFrame):
-        h = _history_window(history, carry)
+        h = _decayed_history(history, decay)
         teams = sorted(set(h["home_team"]) | set(h["away_team"]))
         tidx = {t: i for i, t in enumerate(teams)}
         n = len(teams)

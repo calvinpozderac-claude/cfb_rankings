@@ -40,7 +40,7 @@ def tune_elo(g, fbs_ids):
     best = None
     for k in (25, 40, 55):
         for hf in (50, 65, 80):
-            for pr in (0.15, 0.25, 0.40):
+            for pr in (0.05, 0.10, 0.15, 0.25, 0.40):
                 e = elomod.run_elo(g, k=k, home_field=hf, mov=True, preseason_regress=pr)
                 sub = g[g.game_id.isin(val_ids)].copy()
                 sub["p"] = sub.game_id.map(e["elo_prob"])
@@ -76,6 +76,35 @@ def tune_pagerank(g):
     return best
 
 
+def tune_decay(g):
+    """Tune the cross-season recency decay per batch-model family on 2013-2018.
+
+    A game d seasons back is weighted decay**d. Different families want different
+    memory: PageRank favours recency, Bradley-Terry wants more history.
+    Returns (best_pr_decay, best_bt_decay); blade-chest uses the PR-side optimum.
+    """
+    val = g[(g.season >= 2013) & (g.season <= 2018)]
+    val_ids = set(val[is_fbs(val)].game_id)
+    gg = g[g.season >= 2006]
+    grid = [0.0, 0.35, 0.5, 0.65, 0.8, 1.0]
+    rows = []
+    best = {"pr": (None, 9), "bt": (None, 9)}
+    for decay in grid:
+        for fam, fit in [("pr_points_keep", rankers.make_pagerank("points_keep", decay=decay)),
+                         ("bradley_terry", rankers.make_bradley_terry(decay=decay))]:
+            preds = backtest.batch_backtest(gg, fit, val_ids)
+            sub = g[g.game_id.isin(preds)].copy()
+            sub["p"] = sub.game_id.map(preds)
+            m = metrics.evaluate(sub.home_win.values, sub.p.values)
+            rows.append({"family": fam, "decay": decay, "acc": m["acc"], "logloss": m["logloss"]})
+            key = "pr" if fam == "pr_points_keep" else "bt"
+            if m["logloss"] < best[key][1]:
+                best[key] = (decay, m["logloss"])
+    pd.DataFrame(rows).to_csv(os.path.join(RESULTS, "tuning_decay.csv"), index=False)
+    print(f"  best decay: PageRank={best['pr'][0]}  Bradley-Terry={best['bt'][0]}")
+    return best["pr"][0], best["bt"][0]
+
+
 def main():
     t0 = time.time()
     g = build_games()
@@ -88,6 +117,9 @@ def main():
     be = tune_elo(g, fbs_ids)
     print("Tuning PageRank margin ...")
     bp = tune_pagerank(g)
+    print("Tuning cross-season decay ...")
+    pr_decay, bt_decay = tune_decay(g)
+    blade_decay = 0.5  # blade-chest optimum from a separate sweep (needs a little more history)
 
     # ---- base table ----
     base = g[g.game_id.isin(fbs_ids)][
@@ -110,15 +142,16 @@ def main():
     fmerged = F  # indexed by game_id
 
     # ---- batch rankers (walk-forward over ALL fbs games) ----
+    dmp = bp["damping"]
     batch_specs = [
-        ("pr_win", rankers.make_pagerank("win", damping=bp["damping"])),
-        ("pr_margin", rankers.make_pagerank("margin", damping=bp["damping"],
-                                            margin_cap=bp["margin_cap"])),
-        ("pr_points", rankers.make_pagerank("points", damping=bp["damping"])),
-        ("pr_points_against", rankers.make_pagerank("points_against", damping=bp["damping"])),
-        ("pr_points_keep", rankers.make_pagerank("points_keep", damping=bp["damping"])),
-        ("bradley_terry", rankers.make_bradley_terry()),
-        ("blade_chest", rankers.make_blade_chest(dim=3)),
+        ("pr_win", rankers.make_pagerank("win", damping=dmp, decay=pr_decay)),
+        ("pr_margin", rankers.make_pagerank("margin", damping=dmp,
+                                            margin_cap=bp["margin_cap"], decay=pr_decay)),
+        ("pr_points", rankers.make_pagerank("points", damping=dmp, decay=pr_decay)),
+        ("pr_points_against", rankers.make_pagerank("points_against", damping=dmp, decay=pr_decay)),
+        ("pr_points_keep", rankers.make_pagerank("points_keep", damping=dmp, decay=pr_decay)),
+        ("bradley_terry", rankers.make_bradley_terry(decay=bt_decay)),
+        ("blade_chest", rankers.make_blade_chest(dim=3, decay=blade_decay)),
     ]
     for name, fit in batch_specs:
         t = time.time()
@@ -140,7 +173,7 @@ def main():
 
     # ---- stacked ensemble (our signals only), per-season logistic ----
     from sklearn.linear_model import LogisticRegression
-    stack_cols = ["elo", "pr_points", "bradley_terry", "blade_chest", "gbm", "mlp"]
+    stack_cols = ["elo", "pr_points_keep", "bradley_terry", "blade_chest", "gbm", "mlp"]
 
     def _logit(p):
         p = np.clip(p, 1e-6, 1 - 1e-6)
@@ -205,6 +238,18 @@ def main():
             by_season.append({"season": s, "model": mc, **m})
     pd.DataFrame(by_season).to_csv(os.path.join(RESULTS, "metrics_by_season.csv"),
                                    index=False)
+
+    # by regular-season week (timing effects), 2014-2025
+    by_week = []
+    rw = base[(base.season >= 2014) & (base.season <= 2025) & (base.season_type == "regular")]
+    for wk in range(1, 16):
+        sub = rw[rw.week == wk]
+        if len(sub) < 30:
+            continue
+        for mc in model_cols:
+            m = metrics.evaluate(sub.home_win.values, sub[mc].values)
+            by_week.append({"week": wk, "model": mc, **m})
+    pd.DataFrame(by_week).to_csv(os.path.join(RESULTS, "metrics_by_week.csv"), index=False)
 
     # calibration for a few key models, recent era
     rec = base[(base.season >= 2019) & (base.season <= 2025)]

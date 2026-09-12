@@ -13,6 +13,10 @@ Three model classes are implemented and backtested walk-forward over **2001–20
 * **Machine learning** — gradient boosting and a neural net on pre-game features, plus a
   stacked **ensemble**.
 
+All models carry information across seasons — Elo via between-season regression, the batch
+models via a tuned exponential **recency decay** over the last several seasons — so a program
+that was strong last year is rated strong in week 1.
+
 **Benchmarks:** the betting market's consensus closing spread and CollegeFootballData's own
 Elo.
 

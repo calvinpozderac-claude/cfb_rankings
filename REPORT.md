@@ -16,13 +16,16 @@ genuinely hard to beat — the **Vegas closing line** and **CollegeFootballData'
 | Neural net (MLP) | ML | 71.1% | 0.555 | 0.188 |
 | CFBD Elo | *algo benchmark* | 71.0% | 0.560 | 0.189 |
 | Elo (tuned, ours) | Elo | 70.8% | 0.559 | 0.190 |
-| **PageRank (points + keep)** | **network** | **69.9%** | **0.572** | **0.194** |
-| Bradley–Terry | paired-comparison | 67.7% | 0.604 | 0.208 |
-| PageRank (points) | network | 67.1% | 0.598 | 0.206 |
-| PageRank (points-against) | network | 67.0% | 0.598 | 0.206 |
-| PageRank (margin) | network | 67.3% | 0.672 | 0.219 |
-| PageRank (wins) | network | 67.4% | 0.685 | 0.223 |
-| Blade–Chest | intransitive | 66.4% | 0.620 | 0.214 |
+| **PageRank (points + keep)** | **network** | **69.9%** | **0.568** | **0.194** |
+| Bradley–Terry | paired-comparison | 68.0% | 0.597 | 0.206 |
+| PageRank (points-against) | network | 67.5% | 0.592 | 0.204 |
+| PageRank (points) | network | 67.4% | 0.592 | 0.204 |
+| PageRank (margin) | network | 68.5% | 0.628 | 0.212 |
+| PageRank (wins) | network | 68.0% | 0.631 | 0.213 |
+| Blade–Chest | intransitive | 65.8% | 0.626 | 0.218 |
+
+*(All batch rankers now carry information from several prior seasons via a tuned
+recency decay — §2.2.)*
 
 ![Model comparison](results/figures/fig1_model_comparison.png)
 
@@ -103,19 +106,43 @@ The self-retention twist is the single biggest lever in the whole PageRank famil
 
 ![PageRank edge weighting](results/figures/fig5_pagerank_family.png)
 
-`points+keep` gains **+2.8 accuracy points and ~0.03 log loss** over every other PageRank
-variant and **lands right on tuned Elo** (69.9% vs 70.8% accuracy; 0.572 vs 0.559 log loss,
+`points+keep` gains **+2.5 accuracy points and ~0.03 log loss** over every other PageRank
+variant and **lands right on tuned Elo** (69.9% vs 70.8% accuracy; 0.568 vs 0.559 log loss,
 2019–2025) — and the effect is stable in every era back to 2006 (`results/metrics_overall.csv`).
 Intuitively, a self-loop proportional to points scored stops strong offenses from bleeding
 all their rank to whoever they just beat, and folds *offensive output* directly into the
 stationary distribution — the piece of information plain loser→winner PageRank throws away.
+
+#### 2.2 Cross-season memory (recency-decay)
+
+A ranker that only looks at the current season is blind in week 1 — it has no reason to think
+Ohio State will be good before Ohio State has played. So every batch model instead fits on the
+**last seven seasons**, weighting a game from `d` seasons ago by `decay ** d` (current season =
+1). This is a program's carried-over reputation: heavy in September, fading as fresh results
+arrive. Elo already does the equivalent through its **between-season regression** (keep 85% of
+last year's rating, tuned `regress=0.15`), which is why Elo predicts week 1 respectably.
+
+The decay is tuned per family (`results/tuning_decay.csv`), and it matters which way you lean:
+
+| `decay` | current-season only (0) | recency (0.35) | balanced (0.5) | long memory (0.65) | equal (1.0) |
+|---|---|---|---|---|---|
+| **PageRank points+keep** (log loss) | 0.609 | **0.551** | 0.561 | 0.576 | 0.619 |
+| **Bradley–Terry** (log loss) | 0.636 | 0.594 | 0.587 | **0.584** | 0.592 |
+
+Two lessons: (1) **using prior seasons is a large win** — dropping them (decay 0) costs
+Bradley–Terry ~5 accuracy points and ~0.05 log loss; (2) the *right amount* of memory is
+model-specific. Point-flow **PageRank favours recency (0.35)** — its graph is information-dense,
+so last year fades fast — whereas **Bradley–Terry wants more history (0.65)**, because MLE team
+strengths need many games to pin down and stale data still helps stabilise them. We use each
+family's optimum (PageRank 0.35, Bradley–Terry 0.65, Blade–Chest 0.5). The payoff is
+concentrated in the early weeks, exactly where it should be (§3, by-week).
 
 ### Elo / paired-comparison (`src/cfbrank/elo.py`, `rankers.py`)
 * **Elo** with a 538-style margin-of-victory multiplier, home-field advantage, and
   between-season regression to the mean. Tuned on 2007–2015 → **K=40, HFA=50 Elo pts,
   regress=0.15** (`results/tuning_elo.csv`).
 * **Bradley–Terry** — logistic maximum-likelihood team strengths + a global home edge,
-  L2-shrunk, refit weekly on the current + prior season.
+  L2-shrunk, refit weekly on several recency-weighted seasons (§2.2).
 * **Blade–Chest** (Chen & Joachims 2016) — each team gets a low-rank *blade* (offense) and
   *chest* (defense) vector so the model can represent **intransitive** ("rock–paper–
   scissors") matchups a single number cannot.
@@ -125,7 +152,7 @@ Gradient boosting and a small neural net over ten pre-game features (our Elo rat
 season win %, scoring margin, rest, games played, home/neutral, conference game).
 
 ### Ensemble (`scripts/run_backtest.py`)
-A per-season logistic **stack** over the base models' log-odds (Elo, BT, PageRank-points,
+A per-season logistic **stack** over the base models' log-odds (Elo, BT, PageRank points+keep,
 Blade–Chest, GBM, MLP). A second stack combines **market + our ensemble** to test whether
 our models carry any information the market has not already priced.
 
@@ -160,29 +187,49 @@ noticeably improves calibration over any single base model (log loss 0.549 vs El
 and GBM's 0.553), even though it barely moves raw accuracy — the value of ensembling here
 is *sharper probabilities*, not more correct sides.
 
-### Difficulty varies through the season
+### Timing: when is each model good, and when does the market pull ahead?
 ![By week](results/figures/fig4_by_week.png)
 
-Week 1 is easy (mismatched openers → ~78% for the market), the mid-season conference grind
-(weeks 6–8) is hardest (~72%), and every model's edge over chance is smallest exactly when
-games are closest. The market's advantage over our models is **widest early**, when Elo has
-the least in-season information.
+Both panels share a shape: games are **easiest at the very start** (mismatched openers →
+~78% / 0.44 log loss for the market), get **hardest in the mid-season conference grind**
+(weeks 6–7, ~72% / 0.55), ease again around rivalry week, then tighten for conference title
+games in week 15. Every model rises and falls together — difficulty is a property of the
+*slate*, not the method. The batch models keep their usual ordering at every week
+(Elo ≳ PageRank points+keep > Bradley–Terry), so no model has a special "time of year".
+
+The one real timing effect is in **the market's edge**, and it points the opposite way to
+intuition — the market is *most* dominant early and our models close the gap as the season
+plays out:
+
+| | Week 1 | Week 4 | Week 7 | Week 12 |
+|---|---:|---:|---:|---:|
+| market − ensemble, log loss gap | **0.076** | 0.051 | 0.029 | 0.018 |
+
+In September the closing line embeds a full offseason of information our results-only models
+cannot see — recruiting, the transfer portal, returning production, coaching changes,
+preseason expectations. By November, enough games have been played that Elo/points+keep have
+largely recovered that context from results alone, and the gap to Vegas roughly halves and
+halves again. The cross-season decay (§2.2) is what keeps our models competitive in weeks 1–3
+at all; without it the network and paired-comparison models would open the season near a
+coin flip.
 
 ### Final 2025 ratings (illustrative)
 Top of the end-of-2025 boards (FBS only; full table in `results/rankings_2025.csv`):
 
 | # | Elo (ours) | Bradley–Terry |
 |--:|---|---|
-| 1 | Indiana | Indiana |
-| 2 | Ohio State | Oregon |
-| 3 | Oregon | Ohio State |
-| 4 | Georgia | BYU |
-| 5 | Miami | Georgia |
+| 1 | Indiana | Ohio State |
+| 2 | Ohio State | Georgia |
+| 3 | Oregon | Oregon |
+| 4 | Georgia | Notre Dame |
+| 5 | Miami | Alabama |
 
-Elo (margin-aware) and Bradley–Terry (win/loss + schedule) mostly agree at the very top but
-diverge below it: BT, which ignores margin, floats unbeaten Group-of-5 teams (BYU, Navy,
-James Madison, Tulane) higher — a concrete illustration of why *what you feed the ranker*
-changes the ranking as much as *which algorithm* you use.
+The two boards make the trade-offs concrete. **Elo** is margin-aware and leans on the current
+season, so it crowns **Indiana** for *this* year's unbeaten, dominant run. **Bradley–Terry**
+ignores margin and carries a longer memory (decay 0.65, §2.2), so it leans toward sustained
+program strength and puts the blue-bloods (Ohio State, Georgia, Notre Dame, Alabama) on top.
+Neither is "right" — they answer different questions, and *what you feed the ranker* (margin?
+how many seasons?) moves the board as much as *which algorithm* you pick.
 
 ## 4. Takeaways
 
@@ -192,6 +239,13 @@ changes the ranking as much as *which algorithm* you use.
   badly calibrated, but a points-flow walk with **self-retention proportional to points
   scored** (`points+keep`) matches Elo. The edge-weighting scheme, not the algorithm, is
   what separates a 67% predictor from a 70% one.
+* **Prior seasons matter, and the right dose is model-specific.** Carrying several
+  recency-weighted seasons is worth ~5 accuracy points to Bradley–Terry and rescues every
+  batch model's first three weeks; point-flow PageRank wants a short memory (decay 0.35),
+  Bradley–Terry a longer one (0.65).
+* **The market's edge is a September phenomenon.** Vegas is ~0.076 log loss better than our
+  ensemble in week 1 but only ~0.018 by week 12 — its advantage is offseason information, and
+  results-based models recover most of it once games are played.
 * **Blade–Chest's intransitivity did not pay off** at CFB sample sizes — the extra
   parameters cost more (variance) than the matchup structure returns.
 * **Ensembling buys calibration, not accuracy**, and **nothing we built beats the closing

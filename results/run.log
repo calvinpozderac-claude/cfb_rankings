@@ -2,33 +2,35 @@ games=36,868  FBS-vs-FBS=17,472
 Tuning Elo ...
   best Elo: {'k': 40, 'home_field': 50, 'preseason_regress': 0.15, 'acc': 0.7383312020460358, 'logloss': 0.5233842465808027}
 Tuning PageRank margin ...
-  best PR-margin: {'margin_cap': 45, 'damping': 0.85, 'acc': 0.6860438292964245, 'logloss': 0.6184948325376229}
+  best PR-margin: {'margin_cap': 14, 'damping': 0.85, 'acc': 0.6936562860438293, 'logloss': 0.5895872087144269}
+Tuning cross-season decay ...
+  best decay: PageRank=0.35  Bradley-Terry=0.65
 Running Elo ...
 Building features ...
-  pr_win         done [24s]
-  pr_margin      done [25s]
-  pr_points      done [24s]
-  pr_points_against done [25s]
-  pr_points_keep done [27s]
-  bradley_terry  done [7s]
-  blade_chest    done [141s]
-  gbm            done [6s]
-  mlp            done [16s]
+  pr_win         done [35s]
+  pr_margin      done [36s]
+  pr_points      done [36s]
+  pr_points_against done [36s]
+  pr_points_keep done [39s]
+  bradley_terry  done [9s]
+  blade_chest    done [248s]
+  gbm            done [4s]
+  mlp            done [12s]
 
-DONE in 338s
+DONE in 577s
 
 === 2019-2025 (recent) ===
   elo                n= 5106 acc=0.7076 ll=0.5586 brier=0.1898
-  pr_win             n= 5106 acc=0.6739 ll=0.6845 brier=0.2234
-  pr_margin          n= 5106 acc=0.6731 ll=0.6721 brier=0.2192
-  pr_points          n= 5106 acc=0.6712 ll=0.5981 brier=0.2062
-  pr_points_against  n= 5106 acc=0.6696 ll=0.5982 brier=0.2063
-  pr_points_keep     n= 5106 acc=0.6992 ll=0.5716 brier=0.1943
-  bradley_terry      n= 5106 acc=0.6767 ll=0.6037 brier=0.2078
-  blade_chest        n= 5106 acc=0.6643 ll=0.6195 brier=0.2144
+  pr_win             n= 5106 acc=0.6800 ll=0.6307 brier=0.2127
+  pr_margin          n= 5106 acc=0.6845 ll=0.6282 brier=0.2117
+  pr_points          n= 5106 acc=0.6737 ll=0.5921 brier=0.2042
+  pr_points_against  n= 5106 acc=0.6751 ll=0.5919 brier=0.2042
+  pr_points_keep     n= 5106 acc=0.6986 ll=0.5683 brier=0.1938
+  bradley_terry      n= 5106 acc=0.6802 ll=0.5974 brier=0.2055
+  blade_chest        n= 5106 acc=0.6577 ll=0.6261 brier=0.2176
   gbm                n= 5106 acc=0.7113 ll=0.5529 brier=0.1871
   mlp                n= 5106 acc=0.7109 ll=0.5551 brier=0.1879
-  ensemble           n= 5106 acc=0.7105 ll=0.5492 brier=0.1859
+  ensemble           n= 5106 acc=0.7109 ll=0.5499 brier=0.1861
   cfbd_elo           n= 5106 acc=0.7101 ll=0.5597 brier=0.1894
   market             n= 5062 acc=0.7299 ll=0.5223 brier=0.1757
-  market_plus_model  n= 5062 acc=0.7309 ll=0.5220 brier=0.1755
+  market_plus_model  n= 5062 acc=0.7307 ll=0.5220 brier=0.1755

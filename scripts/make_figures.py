@@ -21,7 +21,7 @@ os.makedirs(FIG, exist_ok=True)
 # clean, colorblind-safe palette
 C = {"market": "#111111", "ensemble": "#0072B2", "elo": "#009E73",
      "gbm": "#56B4E9", "cfbd_elo": "#E69F00", "bradley_terry": "#CC79A7",
-     "pr_points": "#D55E00", "blade_chest": "#999999"}
+     "pr_points": "#D55E00", "pr_points_keep": "#D55E00", "blade_chest": "#999999"}
 plt.rcParams.update({"figure.dpi": 130, "font.size": 10, "axes.grid": True,
                      "grid.alpha": 0.25, "axes.spines.top": False,
                      "axes.spines.right": False})
@@ -92,19 +92,20 @@ for ax in (ax1, ax2):
 fig.tight_layout(); fig.savefig(os.path.join(FIG, "fig3_by_season.png")); plt.close(fig)
 
 
-# --- Fig 4: skill by week of (regular) season ---
-reg = pred[(pred.season >= 2014) & (pred.season <= 2025) & (pred.season_type == "regular")]
-wk = sorted(w for w in reg.week.unique() if 1 <= w <= 14)
-fig, ax = plt.subplots(figsize=(7.2, 4.4))
-for m in ["market", "ensemble", "elo"]:
-    ys = []
-    for w in wk:
-        s = reg[reg.week == w]
-        ys.append(metrics.evaluate(s.home_win.values, s[m].values)["acc"] * 100)
-    ax.plot(wk, ys, "o-", color=C[m], label=labels[m], ms=4)
-ax.set_xlabel("Week of regular season"); ax.set_ylabel("Accuracy (%)")
-ax.set_title("Accuracy by week, 2014-2025 (early season is hardest)")
-ax.legend()
+# --- Fig 4: accuracy AND log loss by week of season (timing effects) ---
+byW = pd.read_csv(os.path.join(RES, "metrics_by_week.csv"))
+wk_models = ["market", "ensemble", "elo", "pr_points_keep", "bradley_terry"]
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.4))
+for m in wk_models:
+    d = byW[byW.model == m].sort_values("week")
+    ax1.plot(d.week, d.acc * 100, "o-", color=C[m], label=labels[m], ms=4)
+    ax2.plot(d.week, d.logloss, "o-", color=C[m], label=labels[m], ms=4)
+ax1.set_ylabel("Accuracy (%)"); ax1.set_title("Accuracy by week, 2014-2025")
+ax2.set_ylabel("Log loss (lower = better)"); ax2.set_title("Log loss by week, 2014-2025")
+for ax in (ax1, ax2):
+    ax.set_xlabel("Week of regular season")
+    ax.set_xticks(range(1, 16, 2))
+ax1.legend(fontsize=8, ncol=2)
 fig.tight_layout(); fig.savefig(os.path.join(FIG, "fig4_by_week.png")); plt.close(fig)
 
 
@@ -140,11 +141,11 @@ fbs_teams = set(g25[g25.home_division == "fbs"].home_team) | set(g25[g25.away_di
 elo_final = elomod.final_ratings(g, k=40, home_field=50, mov=True, preseason_regress=0.15)
 elo_fbs = elo_final[elo_final.index.isin(fbs_teams)].head(25)
 
-# Bradley-Terry on 2025 season (full-season strengths)
-bt_fit = rankers.make_bradley_terry(reg=3.0, carry=0.35)
-# extract ratings by probing: refit and read via closure is awkward; recompute directly
+# Bradley-Terry end-of-2025 strengths, with the tuned cross-season recency decay
 from scipy.optimize import minimize
-h = g[(g.season >= 2024)].copy(); h["w"] = np.where(h.season == 2025, 1.0, 0.35)
+BT_DECAY = 0.65
+h = g[g.season >= 2019].copy()
+h["w"] = np.power(BT_DECAY, (2025 - h["season"]).astype(float))
 teams = sorted(set(h.home_team) | set(h.away_team)); tidx = {t: i for i, t in enumerate(teams)}
 n = len(teams)
 hi = np.array([tidx[t] for t in h.home_team]); ai = np.array([tidx[t] for t in h.away_team])
