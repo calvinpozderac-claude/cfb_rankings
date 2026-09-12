@@ -1,0 +1,37 @@
+  boxstats 2014: 1,620 team-games
+  boxstats 2015: 1,646 team-games
+  boxstats 2016: 1,640 team-games
+  boxstats 2017: 1,657 team-games
+  boxstats 2018: 1,674 team-games
+  boxstats 2019: 1,694 team-games
+  boxstats 2020: 1,052 team-games
+  boxstats 2021: 1,738 team-games
+  boxstats 2022: 2,619 team-games
+  boxstats 2023: 2,934 team-games
+  boxstats 2024: 3,179 team-games
+  boxstats 2025: 3,295 team-games
+boxstats rows 24,665; player production rows 73,762
+                      mean          min          max
+game_id       4.012714e+08  400547640.0  401838053.0
+play          6.461000e+01          0.0        161.0
+yards         3.789600e+02        -15.0        873.0
+success       2.758000e+01          0.0         80.0
+explosive     6.610000e+00          0.0         22.0
+pass_play     2.947000e+01          0.0         88.0
+rush_play     3.322000e+01          0.0        117.0
+sack_taken    1.920000e+00          0.0         11.0
+int_thrown    5.900000e-01          0.0          6.0
+fum_lost      4.800000e-01          0.0          7.0
+td            3.090000e+00          0.0         13.0
+season        2.020420e+03       2014.0       2025.0
+sacks         9.600000e-01          0.0         11.0
+ints          6.100000e-01          0.0          6.0
+pbus          7.600000e-01          0.0         17.0
+ffs           1.700000e-01          0.0          5.0
+d_play        6.450000e+01          0.0        161.0
+d_yards       3.783200e+02        -15.0        873.0
+d_success     2.753000e+01          0.0         80.0
+d_explosive   6.600000e+00          0.0         22.0
+d_int_forced  5.900000e-01          0.0          6.0
+d_fum_forced  4.800000e-01          0.0          7.0
+d_sacks_made  1.920000e+00          0.0         11.0

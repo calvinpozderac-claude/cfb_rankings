@@ -35,8 +35,13 @@ def run_elo(
     mov: bool = True,
     preseason_regress: float = 0.25,
     scale: float = 400.0,
+    team_regress: dict | None = None,
 ) -> pd.DataFrame:
     """Return per-game DataFrame indexed by game_id.
+
+    team_regress: optional {(season, team): regress} overriding the preseason
+    regression per team (e.g. driven by returning production: a team that lost
+    most of its production is pulled harder toward the mean).
 
     Columns: elo_prob (pre-game home win prob), elo_home_pre, elo_away_pre.
     ``games`` must be sorted chronologically (see data.build_games).
@@ -51,9 +56,11 @@ def run_elo(
             cur_season = season
         elif season != cur_season:
             # between-season regression toward the mean
-            if preseason_regress > 0:
-                for t in list(rating.keys()):
-                    rating[t] = INIT + (1 - preseason_regress) * (rating[t] - INIT)
+            for t in list(rating.keys()):
+                reg = preseason_regress
+                if team_regress is not None:
+                    reg = team_regress.get((season, t), preseason_regress)
+                rating[t] = INIT + (1 - reg) * (rating[t] - INIT)
             cur_season = season
 
         h, a = row.home_team, row.away_team

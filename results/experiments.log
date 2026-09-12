@@ -1,0 +1,43 @@
+base rows 17,472
+  ridge on margin            done [45s]  ll19-25=0.5652
+  ridge on ypp_margin        done [15s]  ll19-25=0.5683
+  ridge on success_margin    done [17s]  ll19-25=0.5852
+  ridge on explosive_margin  done [17s]  ll19-25=0.6455
+  ridge on turnover_margin   done [19s]  ll19-25=0.6556
+  ridge on havoc_margin      done [16s]  ll19-25=0.6732
+  elo_rp slope=0.0: ll(2015-18)=0.5368
+  elo_rp slope=0.3: ll(2015-18)=0.5366
+  elo_rp slope=0.6: ll(2015-18)=0.5369
+  elo_rp slope=0.9: ll(2015-18)=0.5373
+  elo_rp slope=1.2: ll(2015-18)=0.5375
+  elo_rp best slope 0.3 | ll19-25=0.5577 vs elo 0.5586
+  gbm_T1_ridge         ll19-25=0.5596 [2s]
+  gbm_T2_efficiency    ll19-25=0.5509 [2s]
+  gbm_T3_offseason     ll19-25=0.5451 [2s]
+  gbm_T4_situational   ll19-25=0.5452 [2s]
+  gbm_T5_openline      ll19-25=0.5353 [2s]
+
+DONE in 175s
+
+     tier                      model    n    acc  logloss  brier  market_gain  ats_pct  model_right_when_disagree
+benchmark         Vegas closing line 5062 0.7299   0.5223 0.1757          NaN      NaN                        NaN
+benchmark         Vegas opening line 4546 0.7290   0.5249 0.1768       0.0014  50.3810                    51.2077
+benchmark                   CFBD Elo 5106 0.7101   0.5597 0.1894       0.0012  49.7585                    43.4022
+       T0                   Elo (T0) 5106 0.7076   0.5586 0.1898       0.0009  49.4968                    43.4593
+       T0                   GBM (T0) 5106 0.7113   0.5529 0.1871       0.0012  49.4767                    44.1034
+       T0              Ensemble (T0) 5106 0.7109   0.5499 0.1861       0.0010  49.6981                    43.5772
+       T1        Ridge margin rating 5106 0.7125   0.5652 0.1906       0.0011  49.2351                    44.7214
+       T1                     GBM T1 5106 0.7143   0.5596 0.1888       0.0006  49.5340                    45.6942
+       T1                   Stack T1 3864 0.7063   0.5554 0.1881      -0.0016  50.2979                    43.8163
+       T2    Ridge yards/play rating 5106 0.6988   0.5683 0.1938       0.0014  48.9734                    41.2334
+       T2  Ridge success-rate rating 5106 0.6882   0.5852 0.2000       0.0013  49.7585                    39.4939
+       T2      Ridge turnover rating 5106 0.6150   0.6556 0.2315       0.0013  50.0604                    33.5340
+       T2       GBM T2 (+efficiency) 5106 0.7172   0.5509 0.1857       0.0007  49.8835                    45.2756
+       T2                   Stack T2 3864 0.7120   0.5509 0.1865      -0.0012  49.1489                    48.1061
+       T3 Elo + returning production 5106 0.7088   0.5577 0.1895       0.0009  49.7182                    43.7135
+       T3        GBM T3 (+offseason) 5106 0.7223   0.5451 0.1837       0.0006  50.2563                    46.3878
+       T4      GBM T4 (+situational) 5106 0.7221   0.5452 0.1838       0.0007  50.4427                    46.9725
+       T4                   Stack T4 3864 0.7158   0.5473 0.1851      -0.0011  50.0851                    49.0421
+       T4    Stack T4, week-bucketed 3864 0.7130   0.5496 0.1860      -0.0011  49.1915                    46.4151
+       T5     GBM T5 (+opening line) 5106 0.7286   0.5353 0.1797       0.0010  51.1417                    48.0899
+       T5   Stack T5 (+opening line) 3125 0.7280   0.5326 0.1801       0.0004  50.9218                    55.5556

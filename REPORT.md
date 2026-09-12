@@ -44,6 +44,14 @@ Three findings drive everything below:
    market improves log loss by 0.0003. When our ensemble and the market *disagree* on the
    winner, **the market is right 58% of the time.**
 
+**Then we tried to close the gap (§5).** Pulling in play-level box scores (efficiency,
+turnovers), rosters (returning production), venue geography and the opening line, and
+adding Massey-style margin ratings, we reached **0.544 log loss / 72.2% accuracy results-only**
+— about a quarter of the gap to Vegas — with efficiency and offseason data doing all the work
+and travel, margin-regression and week-specific stacking doing nothing. The remainder is
+September (the market's offseason knowledge) and in-week information (injuries, QBs, weather)
+that never reaches a box score.
+
 ---
 
 ## 1. Data
@@ -253,14 +261,90 @@ how many seasons?) moves the board as much as *which algorithm* you pick.
   (drive/play-by-play efficiency, returning production, injuries, weather) — signal the
   market uses that box-score-only ratings never see.
 
-## 5. Reproduce
+## 5. Experiments: how close can we get to the closing line?
+
+Starting from the T0 ensemble (0.5499 log loss vs Vegas 0.5223 — a gap of 0.028), we ran a
+ladder of experiments, each adding a new *kind* of information or a new modelling idea, all
+walk-forward and scored on 2019–2025 (`scripts/experiments.py`, `experiments_extra.py`;
+full table in `results/experiments_ladder.csv`).
+
+**New data pulled in:** play-level box scores for every game 2014–2025 (→ team yards/play,
+success rate, explosiveness, turnovers, havoc), season rosters + per-player production
+(→ *returning production* and roster continuity, known preseason), venue coordinates /
+time zones / elevation (→ travel), and the sportsbooks' **opening** lines.
+
+![Experiment ladder](results/figures/fig6_experiment_ladder.png)
+
+| Tier | What was added | Best model | Log loss | Acc | Δ vs previous tier |
+|---|---|---|---:|---:|---:|
+| — | **Vegas closing line** | | **0.5223** | **73.0%** | |
+| — | Vegas opening line | | 0.5249 | 72.9% | |
+| T0 | results only (prior work) | Ensemble | 0.5499 | 71.1% | |
+| T1 | **ridge (Massey) point-margin ratings** | GBM T1* | 0.5596 | 71.4% | (*trained 2015+ only — the apples-to-apples base for T2–T4) |
+| T2 | **+ box-score efficiency ratings** (yds/play, success, explosive, turnover, havoc) | GBM T2 | 0.5509 | 71.7% | **−0.009** |
+| T3 | **+ offseason**: returning production, roster continuity, RP-driven Elo | GBM T3 | 0.5451 | **72.2%** | **−0.006** |
+| T4 | + situational: travel distance, time-zone shift, elevation | GBM T4 | 0.5452 | 72.2% | 0.000 |
+| T4 | stack of everything results-only | **Stack FINAL** | **0.5438** | 71.8% | |
+| T5 | + **opening line** (market-informed) | Stack T5 | 0.5326 | 72.8% | −0.011 |
+
+**Results-only, we closed about a quarter of the gap** — 0.0276 → 0.0215 log loss — and the
+best results-only GBM now picks winners at **72.2%, within 0.8 points of the closing line**.
+Two ingredients did all the work:
+
+* **Efficiency beats scores.** A ridge rating on *yards per play* alone (0.568) predicts nearly
+  as well as the ridge on *points* (0.565), and feeding the GBM opponent-adjusted efficiency
+  ratings was the single largest step (−0.009). Turnovers and havoc are useless *standalone*
+  (0.656 / 0.673 — they don't persist week to week) but still earn their place as inputs.
+* **Offseason information helps** (−0.006, +0.5 accuracy) — but not where we expected. Returning
+  production sharpened *mid-season* predictions (a program that returned its offense keeps
+  getting better), yet it barely dented the **week-1 gap** (0.090 → 0.084): the roster share
+  that returns is a crude proxy for what the market prices in September (QB quality, portal
+  additions, recruiting class, coaching changes).
+
+Ideas that **did not** work, and are worth knowing: travel / time-zone / elevation (no gain at
+all — the closing line and rest already carry it); a GBM that *regresses point margin* and
+converts to a probability (0.5526 vs 0.5452 for the classifier — the extra information in the
+margin is eaten by blowout noise); week-bucketed stackers (worse — three stackers see a third
+of the data each); a dynamic K for Elo (−0.003, real but tiny); Elo whose preseason regression
+depends on returning production (−0.001).
+
+**Where the remaining gap lives.**
+![Gap by week](results/figures/fig7_gap_by_week.png)
+
+The results-only stack sits ~0.02 behind Vegas from week 4 onward and ~0.08 behind in
+week 1. Nothing we can compute from results, box scores or rosters recovers September; the
+opening line — which embeds the same offseason information as the close — recovers it entirely
+(Stack T5's week-1 gap is −0.008).
+
+**Market-informed tier: do we predict line movement?** Adding our best results-only model to
+the *opening* line does **not** improve on the opening line's own probabilities, and Stack T5
+(0.5326) still trails the close (0.5223). But the model does call the *direction* the line will
+move from open to close **53–55% of the time** (n≈1,000 moves ≥1 pt, ~2σ above chance): it
+contains a faint trace of what sharp money knows, not enough to profit from. Against the spread
+our best model goes **50.4%** (break-even 52.4%); when it disagrees with the close on the
+winner it is right 47%.
+
+**Bottom line.** With box scores, rosters and 25 years of results, a careful ensemble reaches
+~72% / 0.544 — real progress over 71% / 0.550, and a fair description of the ceiling for
+public results-derived data. The last 0.02 of log loss is information that never appears in a
+box score: injuries and quarterback availability, weather, coaching, and the wagers of people
+who know those things. The natural next inputs are exactly those — an injury/QB-status feed,
+recruiting rankings and transfer-portal grades, and weather — and the opening→closing
+line-movement signal is the cleanest yardstick for whether any of them add information the
+market lacks.
+
+## 6. Reproduce
 
 ```bash
 pip install -r requirements.txt
 python -m src.cfbrank.data          # build data/games.csv.gz (needs the cfbfastR-data checkout)
-python scripts/run_backtest.py      # walk-forward backtest -> results/*.csv, ~4 min
+python scripts/run_backtest.py      # walk-forward backtest -> results/*.csv, ~10 min
 python scripts/make_figures.py      # figures + results/rankings_2025.csv
 python scripts/ats_analysis.py      # market-efficiency tests
+python -m src.cfbrank.boxstats      # box-score / player-production caches (needs player_stats + rosters)
+python scripts/experiments.py       # experiment ladder (T1-T5), ~4 min
+python scripts/experiments_extra.py # margin-regression GBM, dynamic-K Elo, final stacks
+python scripts/make_experiment_figures.py
 ```
 
 All metrics come from `results/predictions.csv.gz` (one out-of-sample probability per model

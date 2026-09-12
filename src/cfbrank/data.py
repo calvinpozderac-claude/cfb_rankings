@@ -48,12 +48,13 @@ def _consensus_spread(lines_path: str) -> pd.DataFrame:
     Convention: spread_home < 0 means the home team is favored (e.g. -7 = home by 7).
     """
     cols = [
-        "game_id", "season", "market_type", "abbr", "lines",
+        "game_id", "season", "market_type", "abbr", "lines", "opening_lines",
         "home_team_id", "away_team_id", "week", "season_type",
     ]
     lo = pd.read_csv(lines_path, usecols=cols, low_memory=False)
     lo = lo[lo["market_type"] == "spread"].copy()
     lo["lines"] = pd.to_numeric(lo["lines"], errors="coerce")
+    lo["opening_lines"] = pd.to_numeric(lo["opening_lines"], errors="coerce")
     lo = lo.dropna(subset=["lines", "game_id", "abbr"])
     lo["game_id"] = lo["game_id"].astype(np.int64)
     return lo
@@ -118,6 +119,9 @@ def build_games(force: bool = False) -> pd.DataFrame:
     home_rows = lo[lo["team"] == lo["home_name"]]
     spread_home = home_rows.groupby("game_id")["lines"].median()
     g["spread_home"] = g["game_id"].map(spread_home)
+    # opening consensus (where books report it) - a *pre-market-move* signal
+    open_home = home_rows.dropna(subset=["opening_lines"]).groupby("game_id")["opening_lines"].median()
+    g["open_spread_home"] = g["game_id"].map(open_home)
 
     # ---- global chronological ordering for walk-forward ----
     g["st_order"] = g["season_type"].map(SEASON_TYPE_ORDER).fillna(0).astype(int)
