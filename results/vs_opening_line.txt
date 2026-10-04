@@ -1,0 +1,50 @@
+opening-line games with our model: 8,606  seasons [np.int64(2013), np.int64(2014), np.int64(2015), np.int64(2016), np.int64(2017), np.int64(2018), np.int64(2019), np.int64(2021), np.int64(2022), np.int64(2023), np.int64(2024), np.int64(2025)]
+
+== 1. matched-sample log loss vs the OPENING line ==
+  all        Vegas OPENING                  n= 8606 acc=0.7453 ll=0.5048 vs open -0.0000
+  all        Vegas CLOSING                  n= 8606 acc=0.7459 ll=0.5004 vs open -0.0043
+  all        Results-only model             n= 8606 acc=0.7293 ll=0.5226 vs open +0.0179
+  all        Previous ensemble              n= 8606 acc=0.7219 ll=0.5333 vs open +0.0285
+  all        GBM T4 (box score+offseason)   n= 5244 acc=0.7248 ll=0.5404 vs open +0.0206
+  2013-2019  Vegas OPENING                  n= 4749 acc=0.7616 ll=0.4832 vs open -0.0000
+  2013-2019  Vegas CLOSING                  n= 4749 acc=0.7625 ll=0.4788 vs open -0.0043
+  2013-2019  Results-only model             n= 4749 acc=0.7414 ll=0.5031 vs open +0.0200
+  2013-2019  Previous ensemble              n= 4749 acc=0.7351 ll=0.5148 vs open +0.0317
+  2021-2025  Vegas OPENING                  n= 3857 acc=0.7252 ll=0.5314 vs open +0.0000
+  2021-2025  Vegas CLOSING                  n= 3857 acc=0.7254 ll=0.5271 vs open -0.0043
+  2021-2025  Results-only model             n= 3857 acc=0.7143 ll=0.5467 vs open +0.0153
+  2021-2025  Previous ensemble              n= 3857 acc=0.7057 ll=0.5560 vs open +0.0246
+  2021-2025  GBM T4 (box score+offseason)   n= 3857 acc=0.7182 ll=0.5526 vs open +0.0213
+
+== 2. does the model add to the opening line? (walk-forward blend) ==
+  2015: optimal weight on open 0.78, on model +0.24
+  2016: optimal weight on open 0.88, on model +0.15
+  2017: optimal weight on open 0.82, on model +0.13
+  2018: optimal weight on open 0.88, on model +0.06
+  2019: optimal weight on open 0.89, on model +0.05
+  2021: optimal weight on open 0.90, on model +0.04
+  2022: optimal weight on open 0.91, on model +0.01
+  2023: optimal weight on open 0.92, on model -0.02
+  2024: optimal weight on open 0.92, on model -0.00
+  2025: optimal weight on open 0.92, on model -0.01
+  model alone vs open        +0.0177  95% CI [+0.0128, +0.0224]  n=7281
+  open+model blend vs open   -0.0003  95% CI [-0.0013, +0.0006]  n=7281
+
+== 3. slices: model - OPEN log loss (negative = model wins) ==
+  week 1         n=  513 model 0.4607 open 0.4329 diff +0.0278
+  weeks 2-4      n= 1754 model 0.4938 open 0.4580 diff +0.0359
+  weeks 5-9      n= 3089 model 0.5443 open 0.5257 diff +0.0186
+  weeks 10-13    n= 2654 model 0.5184 open 0.5128 diff +0.0056
+  weeks 14-15    n=  462 model 0.5330 open 0.5331 diff -0.0001
+  |open|<=3      n= 1475 model 0.7090 open 0.6913 diff +0.0177
+  |open| 3-10    n= 3619 model 0.6531 open 0.6331 diff +0.0200
+  |open|>10      n= 3790 model 0.3403 open 0.3251 diff +0.0152
+
+== 4. does the market move toward the model after the open? ==
+  line moved >= 1.0pt: n=5508  toward model's side 51.4%  (SE 0.7, chance 50)
+  line moved >= 2.0pt: n=3040  toward model's side 53.5%  (SE 0.9, chance 50)
+
+== 5. ATS vs the OPENING spread, bet the model's side ==
+  every game                     n=8463 win%=49.17 (SE 0.5)  roi@-110=-6.1%  (break-even 52.38%)
+  top quartile of disagreement   n=2116 win%=47.78 (SE 1.1)  roi@-110=-8.8%  (break-even 52.38%)
+  top decile                     n= 847 win%=48.52 (SE 1.7)  roi@-110=-7.4%  (break-even 52.38%)

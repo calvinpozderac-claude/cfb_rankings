@@ -481,6 +481,61 @@ Honest negatives, each tested and dropped: multi-cap Massey (14/50-point caps), 
 a wider/deeper GBM. All were redundant with the existing ratings and merely added variance — the
 validation run picked the *simpler* feature set over the enriched one.
 
+### 6.1 Does it beat the Vegas *opening* line? No.
+
+The closing line is a slightly unfair yardstick: it has absorbed a week of sharp money that a
+bettor placing wagers when week W-1 ends never sees. The **opening line** is the honest
+comparison, since everything our model uses (past results) is available at that moment.
+Opening spreads exist for 2013-2019 and 2021-2025; all numbers below use the *same* 8,606 games
+(`scripts/vs_opening_line.py`).
+
+| Model | Accuracy | Log loss | vs opening line |
+|---|---:|---:|---:|
+| Vegas **closing** line | 74.6% | 0.5004 | −0.0043 |
+| **Vegas opening line** | **74.5%** | **0.5048** | — |
+| **Results-only model** | 72.9% | 0.5226 | **+0.018** |
+| Box-score + offseason GBM (§5) | 72.5% | 0.5404 | +0.021 |
+| Previous ensemble (§3) | 72.2% | 0.5333 | +0.029 |
+
+**The model loses to the opening line in every window** (2013-19: +0.020; 2021-25: +0.015) and
+in every one of the 12 seasons individually. A paired bootstrap over 7,281 games puts the
+penalty at +0.0177, 95% CI [+0.013, +0.022] — nowhere near zero. The opening line is only 0.004
+worse than the close, so the real story is that most of the gap to Vegas is already present *at
+the open*; sharp money adds a little, not a lot.
+
+**Is there complementary information?** No, and it is shrinking. A walk-forward blend of the
+opening line and our model improves log loss by a statistically indistinguishable 0.0003
+(95% CI [−0.001, +0.001]). The optimal weight the blend assigns to our model **decays from
++0.24 in 2015 to ≈0 by 2022-25**:
+
+| Season | 2015 | 2016 | 2017 | 2018 | 2019 | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Weight on our model | +0.24 | +0.15 | +0.13 | +0.06 | +0.05 | +0.04 | +0.01 | −0.02 | 0.00 | −0.01 |
+
+A decade ago the opening line still left something on the table that pure results could supply;
+today it does not. The opening line now prices in everything a results-only model knows.
+
+**Even the spots where we looked good fade.** Against the *closing* line the model tied or won
+in weeks 14-15; against the opening line it is level there (−0.0001) and loses everywhere
+earlier — weeks 2-4 worst (+0.036), then week 1 (+0.028), weeks 5-9 (+0.019), weeks 10-13
+(+0.006). It loses on pick'em games (+0.018), mid-sized spreads (+0.020) and blowouts (+0.015)
+alike, so there is no favourite-size niche either.
+
+**And it can't be bet.** Taking the model's side against the *opening spread* wins **49.2%**
+(break-even 52.4%; ROI −6.1% at −110), and the largest model-vs-line disagreements do *worse*
+(top quartile 47.8%, top decile 48.5%) — consistent with those being the games where the market
+knows something we don't. Over the 12 seasons the top-quartile ATS rate ranges 41.5%-55.8% with
+no persistent winner. After the open, the market moves toward the model's side only 51.4% of
+the time on moves of ≥1 pt (53.5% on ≥2 pt; chance is 50%): the faintest echo of agreement, far
+from a tradeable signal.
+
+**Bottom line.** Game results alone buy roughly a third of the distance from a plain Elo to the
+closing line, and that is as far as they go. The last 0.018 to the opening line is made of
+what results cannot see — injuries and quarterback availability, depth charts, weather, coaching
+and scheme, and the preseason view of the roster — and it is the same material §5 and §5.1
+identified. Beating the opening line would need *new* information, not a better model of the
+old information.
+
 ## 7. Reproduce
 
 ```bash
@@ -501,6 +556,7 @@ python scripts/results_only_model.py --rebuild   # best results-only predictor (
 python scripts/results_only_tune.py              # model-side tuning (validation 2006-2017)
 python scripts/results_only_rating_sweep.py      # rating-side tuning
 python scripts/make_results_only_fig.py
+python scripts/vs_opening_line.py                # does anything beat the OPENING line?
 ```
 
 All metrics come from `results/predictions.csv.gz` (one out-of-sample probability per model
