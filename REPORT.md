@@ -291,8 +291,10 @@ time zones / elevation (→ travel), and the sportsbooks' **opening** lines.
 | T4 | stack of everything results-only | **Stack FINAL** | **0.5438** | 71.8% | |
 | T5 | + **opening line** (market-informed) | Stack T5 | 0.5326 | 72.8% | −0.011 |
 
-**Results-only, we closed about a quarter of the gap** — 0.0276 → 0.0215 log loss — and the
-best results-only GBM now picks winners at **72.2%, within 0.8 points of the closing line**.
+**Without using the market line, we closed about a quarter of the gap** — 0.0276 → 0.0215 log loss — and the
+best such GBM now picks winners at **72.2%, within 0.8 points of the closing line**.
+("Results-only" in this section means *not using the betting line*; §6 tightens it further to
+*game results only* — no box scores or rosters either — and does better.)
 Two ingredients did all the work:
 
 * **Efficiency beats scores.** A ridge rating on *yards per play* alone (0.568) predicts nearly

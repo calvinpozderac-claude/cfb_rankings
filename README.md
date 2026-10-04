@@ -33,8 +33,9 @@ Tuned Elo ≈ gradient boosting ≈ the ensemble, all at **~71% accuracy / 0.55 
 recent seasons. Most PageRanks predict poorly, but a points-flow walk with self-retention
 (`points+keep`) matches Elo at **69.9%**. Adding play-level box-score efficiency, returning
 production and Massey-style margin ratings (`scripts/experiments.py`) lifts the best
-results-only model to **72.2% / 0.544** — about a quarter of the way to Vegas — while travel,
-margin-regression and week-specific stacking add nothing. **Nothing beats the closing line**
+*non-market* model to **72.2% / 0.544** — about a quarter of the way to Vegas — while travel,
+margin-regression and week-specific stacking add nothing. (Tightening further to *game results
+only* and training on all 20 seasons does better still — see Best model above.) **Nothing beats the closing line**
 (all models ≈ 49.5% against the spread vs a 52.4% break-even), and where our best model
 disagrees with the market on the winner, the market is right 58% of the time.
 
