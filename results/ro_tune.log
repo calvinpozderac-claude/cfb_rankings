@@ -1,0 +1,34 @@
+  all      d3_lr04      val 0.5193 | test 0.5398 [6s]
+  all      d3_lr03_600  val 0.5200 | test 0.5399 [15s]
+  all      d4_lr03      val 0.5211 | test 0.5411 [24s]
+  all      d2_lr05      val 0.5204 | test 0.5397 [31s]
+  orig     d3_lr04      val 0.5192 | test 0.5398 [37s]
+  orig     d3_lr03_600  val 0.5201 | test 0.5397 [44s]
+  orig     d4_lr03      val 0.5228 | test 0.5407 [53s]
+  orig     d2_lr05      val 0.5208 | test 0.5397 [59s]
+  compact  d3_lr04      val 0.5199 | test 0.5406 [65s]
+  compact  d3_lr03_600  val 0.5205 | test 0.5407 [72s]
+  compact  d4_lr03      val 0.5230 | test 0.5418 [80s]
+  compact  d2_lr05      val 0.5211 | test 0.5411 [85s]
+  ratings  d3_lr04      val 0.5245 | test 0.5450 [91s]
+  ratings  d3_lr03_600  val 0.5254 | test 0.5451 [98s]
+  ratings  d4_lr03      val 0.5273 | test 0.5455 [106s]
+  ratings  d2_lr05      val 0.5260 | test 0.5454 [111s]
+
+BEST on validation: feats=orig gbm=d3_lr04 (val 0.5192)
+
+blend (w on GBM):
+   w  val_ll  test_ll
+0.00  0.5248   0.5440
+0.25  0.5196   0.5409
+0.50  0.5170   0.5392
+0.75  0.5168   0.5388
+1.00  0.5192   0.5398
+  ro_lr                  val 0.5248 | TEST 0.5440 acc 0.7152 n=5839
+  g_orig_d3_lr04         val 0.5192 | TEST 0.5398 acc 0.7198 n=5839
+  gbm_bag                val 0.5192 | TEST 0.5390 acc 0.7200 n=5839
+  ro_best                val 0.5168 | TEST 0.5385 acc 0.7196 n=5839
+  ensemble               val 0.5214 | TEST 0.5455 acc 0.7138 n=5839
+  market                 val 0.4826 | TEST 0.5177 acc 0.7323 n=5760
+
+chosen blend weight 0.75 | done 140s

@@ -1,0 +1,58 @@
+    period 80 (80/382) 14s
+    period 160 (160/382) 30s
+    period 240 (240/382) 47s
+    period 321 (320/382) 65s
+  base       val_ll 0.5169 acc 0.7386  [85s]
+    period 80 (80/382) 12s
+    period 160 (160/382) 28s
+    period 240 (240/382) 44s
+    period 321 (320/382) 61s
+  cap21      val_ll 0.5172 acc 0.7378  [81s]
+    period 80 (80/382) 13s
+    period 160 (160/382) 28s
+    period 240 (240/382) 44s
+    period 321 (320/382) 60s
+  cap35      val_ll 0.5156 acc 0.7392  [79s]
+    period 80 (80/382) 13s
+    period 160 (160/382) 27s
+    period 240 (240/382) 43s
+    period 321 (320/382) 59s
+  lam8       val_ll 0.5174 acc 0.7380  [78s]
+    period 80 (80/382) 11s
+    period 160 (160/382) 26s
+    period 240 (240/382) 41s
+    period 321 (320/382) 57s
+  lam2       val_ll 0.5163 acc 0.7381  [77s]
+    period 80 (80/382) 12s
+    period 160 (160/382) 28s
+    period 240 (240/382) 44s
+    period 321 (320/382) 60s
+  decay_lo   val_ll 0.5172 acc 0.7388  [79s]
+    period 80 (80/382) 12s
+    period 160 (160/382) 29s
+    period 240 (240/382) 45s
+    period 321 (320/382) 62s
+  decay_hi   val_ll 0.5164 acc 0.7372  [81s]
+    period 80 (80/382) 13s
+    period 160 (160/382) 29s
+    period 240 (240/382) 44s
+    period 321 (320/382) 60s
+  cap35_lam2 val_ll 0.5142 acc 0.7399  [79s]
+    period 80 (80/382) 11s
+    period 160 (160/382) 27s
+    period 240 (240/382) 43s
+    period 321 (320/382) 58s
+  cap35_dhi  val_ll 0.5152 acc 0.7385  [77s]
+
+       cfg   val_ll  val_acc  secs
+cap35_lam2 0.514188 0.739902    79
+ cap35_dhi 0.515158 0.738473    77
+     cap35 0.515641 0.739187    79
+      lam2 0.516346 0.738115    77
+  decay_hi 0.516406 0.737162    81
+      base 0.516857 0.738592    85
+     cap21 0.517151 0.737758    81
+  decay_lo 0.517157 0.738830    79
+      lam8 0.517398 0.737996    78
+
+BEST rating config: cap35_lam2

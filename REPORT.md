@@ -416,7 +416,70 @@ seasons (t = 0.8, not significant); widen the window and add an honest train/tes
 vanishes. **The model is a good ranker and a good forecaster; it is not a profitable betting
 system, and the market's efficiency is the reason.**
 
-## 6. Reproduce
+## 6. The best predictor from game results alone
+
+Constraint: every feature derives from nothing but **played games — the two teams, where the
+game was played (home/away/neutral), the date, and the two final scores.** No box scores, no
+rosters, no betting lines, no conference/division labels as features. (Division is used once,
+as *scope*, to decide which league we rate: games involving at least one FBS team.)
+
+This turned out to beat everything earlier in this report — including the §5 models that were
+*allowed* play-by-play efficiency and returning production. The reason is coverage: the
+box-score stacks only existed from 2015/2023 onward, while pure-results features reach back to
+2001, so the learner gets 20 seasons of training data instead of three.
+
+**Held-out test — 2018-2025, chosen settings never saw these seasons** (n=5,839):
+
+| Model | Accuracy | Log loss | Brier | Gap to Vegas |
+|---|---:|---:|---:|---:|
+| **Vegas closing line** | **73.2%** | **0.5177** | 0.1739 | — |
+| **Results-only model (`ro_best`)** | **72.2%** | **0.5367** | 0.1810 | **+0.019** |
+| Previous ensemble (§3) | 71.4% | 0.5455 | 0.1844 | +0.028 |
+| CFBD Elo | 71.5% | 0.5536 | 0.1870 | +0.036 |
+| Elo alone | 70.8% | 0.5538 | 0.1880 | +0.036 |
+
+![Results-only model](results/figures/fig11_results_only.png)
+
+On 2023-2025 it scores **0.5397 / 72.4%**, beating the §5 box-score `stack_final` (0.5438 /
+71.8%) — *more* accuracy from *less* information. **The gap to the closing line falls from
+0.028 to 0.019, about a third of the way closed.**
+
+### What it is
+Three layers, all strictly walk-forward (`src/cfbrank/resultsonly.py`, `scripts/results_only_model.py`):
+
+1. **One chronological pass** — Elo at three speeds (K=20/40/65), season record, average and
+   last-3-game scoring margin, rest days, games played.
+2. **A weekly refit** of five rating systems on a recency-weighted window of past games:
+   * **Massey ridge** on clipped point margin at **three memory horizons** (decay 0.2 / 0.45 /
+     0.8) — short = current form, long = program strength;
+   * **offence/defence ridge** on the two scorelines separately, so the *full* result is used,
+     yielding a predicted margin **and** a predicted total;
+   * **Bradley-Terry** strengths from win/loss alone; **points-flow PageRank with
+     self-retention** (§2.1); **Pythagorean** expectation; **strength of schedule**.
+   Normal equations are accumulated sparsely (3-4 non-zeros per row), so a full weekly refit of
+   every system takes ~0.14 s and the whole 400-week backtest runs in about 80 seconds.
+3. **Per-season refit** of a logistic regression and a 5-seed-bagged gradient booster over the
+   combined table, blended 0.75/0.25 in log-odds.
+
+Every tuning decision — feature set, GBM hyper-parameters, blend weight, and the rating knobs
+(margin cap 35, ridge λ=2) — was made on **2006-2017** and is recorded in
+`results_only_tuning.csv` and `results_only_rating_sweep.csv`.
+
+### Where the gain came from
+The right-hand panel is the story: **the week-1 gap to Vegas halves, 0.091 → 0.045.** The old
+ensemble's single Elo carried one blurred number across the offseason; the multi-horizon Massey
+plus the offence/defence split give a far sharper preseason prior from the same raw results. By
+**weeks 14-15 the model actually beats the closing line** (gap −0.007, −0.012) — with a full
+season of results in hand, pure results-based ratings are genuinely competitive, and what Vegas
+still holds over us is concentrated in September.
+
+### What did *not* help
+Honest negatives, each tested and dropped: multi-cap Massey (14/50-point caps), a day-decayed
+"hot form" Massey (45-day half-life), team scoring volatility, head-to-head/rivalry history, and
+a wider/deeper GBM. All were redundant with the existing ratings and merely added variance — the
+validation run picked the *simpler* feature set over the enriched one.
+
+## 7. Reproduce
 
 ```bash
 pip install -r requirements.txt
@@ -432,6 +495,10 @@ python scripts/vegas_vs_model.py    # where the model beats / trails the closing
 python scripts/make_vegas_vs_model_fig.py
 python scripts/betting_sim.py       # threshold betting backtest (train/test, ML + ATS)
 python scripts/make_betting_fig.py
+python scripts/results_only_model.py --rebuild   # best results-only predictor (~100s)
+python scripts/results_only_tune.py              # model-side tuning (validation 2006-2017)
+python scripts/results_only_rating_sweep.py      # rating-side tuning
+python scripts/make_results_only_fig.py
 ```
 
 All metrics come from `results/predictions.csv.gz` (one out-of-sample probability per model

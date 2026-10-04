@@ -22,6 +22,12 @@ Elo.
 
 👉 **Read [`REPORT.md`](REPORT.md) for the full write-up, figures, and findings.**
 
+### Best model
+**Using only past game results** (teams, venue, date, final scores) the tuned pipeline in
+`scripts/results_only_model.py` reaches **0.5367 log loss / 72.2% accuracy** on a held-out
+2018-2025 — better than every richer-data model in this repo, and about a third of the way from
+a plain Elo to the Vegas closing line (0.5177). See [`REPORT.md` §6](REPORT.md).
+
 ### TL;DR
 Tuned Elo ≈ gradient boosting ≈ the ensemble, all at **~71% accuracy / 0.55 log loss** on
 recent seasons. Most PageRanks predict poorly, but a points-flow walk with self-retention
